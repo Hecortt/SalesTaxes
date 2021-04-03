@@ -1,0 +1,89 @@
+﻿@model List<SalesTaxes.Models.Item>
+@{
+    ViewData["Title"] = "Recipe";
+}
+
+<h4>Final Recipe</h4>
+
+<div class="jumbotron">
+    <div class="card border border-dark" style="font-family:'Courier New'">
+        <div class="card-body">
+            @{
+                double totalTaxes = 0, totalGeneral = 0;
+                bool exception = false;
+            }
+
+            @foreach (var entry in Model)
+            {
+                @if (entry.TaxGeneral > 0)
+                    exception = true;
+                else
+                    exception = false;
+
+                double price = 0;
+                if (entry.Qty > 1)
+                    price = entry.Price / entry.Qty;
+                else
+                    price = entry.Price;
+
+                double tax = double.Parse(price.ToString("#0.00")) * @entry.TaxGeneral;
+                double taxi = double.Parse(price.ToString("#0.00")) * @entry.TaxImported;
+
+                double rtax = Math.Round(tax, 2);
+                double rtaxi = Math.Round(taxi, 2);
+                double vttaxi = rtax + rtaxi;
+
+                double ttax = 0;
+                double ttaxi = 0;
+
+                if (entry.Imported || exception)
+                {
+                    string subtax = Math.Round(vttaxi, 2).ToString().Split('.')[1].ToString();
+                    string maintax = Math.Round(vttaxi, 2).ToString().Split('.')[0].ToString();
+                    if (subtax.Length == 2 && double.Parse(subtax.Substring(1)) > 5)
+                    {
+                        double cval = int.Parse(subtax[0].ToString()) * 10 + 10;
+                        ttaxi = (cval / 100) + double.Parse(maintax);
+                        ttax = (price * entry.Qty) + (ttaxi * entry.Qty);
+
+                        totalTaxes += ttaxi * entry.Qty;
+                        totalGeneral += ttax;
+                    }
+                    else if (subtax.Length == 2 && double.Parse(subtax.Substring(1)) < 5)
+                    {
+                        double cval = int.Parse(subtax[0].ToString()) * 10 + 5;
+                        ttaxi = (cval / 100) + double.Parse(maintax);
+                        ttax = price * entry.Qty + ttaxi;
+
+                        totalTaxes += ttaxi * entry.Qty;
+                        totalGeneral += ttax;
+                    }
+                    else
+                    {
+                        ttax = price * entry.Qty + rtax + rtaxi;
+                        ttaxi = rtax + rtaxi;
+
+                        totalTaxes += ttaxi * entry.Qty;
+                        totalGeneral += ttax;
+                    }
+                }
+                else
+                {
+                    ttax = price * entry.Qty + rtax + rtaxi;
+                    ttaxi = rtax + rtaxi;
+
+                    totalTaxes += ttaxi * entry.Qty;
+                    totalGeneral += ttax;
+                }
+
+                @Html.Raw(((entry.Imported) ? "Imported " : " ") + entry.Name.Trim() + ": " + ttax.ToString("#0.00") + " " + ((entry.Qty > 1) ? "(" + entry.Qty + " @ " + Math.Round(ttax/entry.Qty,2) + ")" : ""));
+                <br />
+
+            }
+            Sales Taxes: @totalTaxes.ToString("#0.00")
+            <br />
+            Total: @totalGeneral.ToString("#0.00")
+        </div>
+    </div>
+</div>
+

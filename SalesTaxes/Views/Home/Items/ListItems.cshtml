@@ -1,0 +1,197 @@
+﻿@model List<SalesTaxes.Models.Item>
+@{
+    ViewData["Title"] = "View";
+}
+
+<div class="jumbotron">
+    <h1 class="display-4">Items!</h1>
+</div>
+
+
+<hr />
+
+<div class="row">
+    <div class="col-12 text-right">
+        <a href="@Url.Action("NewItem","Home")" class="btn btn-success"> Form Item</a>
+        <a href="@Url.Action("NewItemSingleLine","Home")" class="btn btn-success"> Single Line Item</a>
+    </div>
+</div>
+
+<hr />
+
+@if (Model != null)
+{
+
+    <h5 class="badge badge-info"> @Model.Count elements </h5>
+    <div class="row">
+        <div class="col">
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="row">
+                        <div class="col">
+                            <h4>Recipe</h4>
+                        </div>
+                        <div class="col text-right">
+                            <a href="@Url.Action("ClearRecipe","Home")" class="btn btn-danger"> Clear Recipe</a>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Qty</th>
+                                <th>Imported</th>
+                                <th>Exception</th>
+                                <th>Name Item</th>
+                                <th>Price</th>
+                                <th>Tax </th>
+                                <th>Price + Tax </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                double totalTaxes = 0, totalGeneral = 0;
+                                bool exception = false;
+                            }
+
+                            @foreach (var entry in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        @entry.Qty
+                                    </td>
+                                    <td>
+                                        @entry.Imported
+                                    </td>
+                                    <td>
+                                        @if (entry.TaxGeneral > 0)
+                                        {
+                                            @Html.Raw("True")
+                                            exception = true;
+                                        }
+                                        else
+                                        {
+                                            @Html.Raw("False")
+                                            exception = false;
+                                        }
+                                    </td>
+                                    <td>
+                                        @entry.Name
+                                    </td>
+                                    <td>
+                                        @entry.Price.ToString("#0.00")
+                                    </td>
+                                    @{
+
+                                        double price = 0;
+                                        if (entry.Qty > 1)
+                                            price = entry.Price / entry.Qty;
+                                        else
+                                            price = entry.Price;
+
+
+                                        double tax = double.Parse(price.ToString("#0.00")) * @entry.TaxGeneral;
+                                        double taxi = double.Parse(price.ToString("#0.00")) * @entry.TaxImported;
+
+                                        double rtax = Math.Round(tax, 2);
+                                        double rtaxi = Math.Round(taxi, 2);
+                                        double vttaxi = rtax + rtaxi;
+
+                                        double ttax = 0;
+                                        double ttaxi = 0;
+
+                                        if (entry.Imported || exception)
+                                        {
+                                            string subtax = Math.Round(vttaxi, 2).ToString().Split('.')[1].ToString();
+                                            string maintax = Math.Round(vttaxi, 2).ToString().Split('.')[0].ToString();
+                                            if (subtax.Length == 2 && double.Parse(subtax.Substring(1)) > 5)
+                                            {
+                                                double cval = int.Parse(subtax[0].ToString()) * 10 + 10;
+                                                ttaxi = (cval / 100) + double.Parse(maintax);
+                                                ttax = (price * entry.Qty) + (ttaxi * entry.Qty);
+
+                                                totalTaxes += ttaxi * entry.Qty;
+                                                totalGeneral += ttax;
+                                            }
+                                            else if (subtax.Length == 2 && double.Parse(subtax.Substring(1)) < 5)
+                                            {
+                                                double cval = int.Parse(subtax[0].ToString()) * 10 + 5;
+                                                ttaxi = (cval / 100) + double.Parse(maintax);
+                                                ttax = price * entry.Qty + ttaxi;
+
+                                                totalTaxes += ttaxi * entry.Qty;
+                                                totalGeneral += ttax;
+                                            }
+                                            else
+                                            {
+                                                ttax = price * entry.Qty + rtax + rtaxi;
+                                                ttaxi = rtax + rtaxi;
+
+                                                totalTaxes += ttaxi * entry.Qty;
+                                                totalGeneral += ttax;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            ttax = price * entry.Qty + rtax + rtaxi;
+                                            ttaxi = rtax + rtaxi;
+
+                                            totalTaxes += ttaxi * entry.Qty;
+                                            totalGeneral += ttax;
+                                        }
+                                    }
+                                    <td>
+                                        @Html.Raw((ttaxi * entry.Qty).ToString("#0.00"))
+                                    </td>
+                                    <td>
+                                        @Html.Raw((ttax).ToString("#0.00"))
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer text-right">
+                    <div class="row">
+                        <div class="col-12">
+                            <ul>
+                                <li> Sales Taxes : @totalTaxes.ToString("#0.00") </li>
+                                <li> Total : @totalGeneral.ToString("#0.00")</li>
+                            </ul>
+                        </div>
+                        <div class="col">
+                            <a href="@Url.Action("PrintRecipe","Home" )" class="btn btn-success"> Print Recipe</a>
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-12">
+            @if (@ViewData["Message"] != null)
+            {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <strong>@ViewData["Message"]</strong>
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            }
+        </div>
+        <div class="col-12">
+            <h3> Empty  </h3>
+        </div>
+    </div>
+
+
+
+}
+

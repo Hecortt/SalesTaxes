@@ -1,0 +1,42 @@
+﻿@model SalesTaxes.Models.Item
+
+@{
+    ViewData["Title"] = "New Item";
+}
+
+
+<section class="container">
+    <div class="row">
+
+        <div class="row">
+            <div class="col">
+                <h3>New Item</h3>
+            </div>
+        </div>
+
+
+        @switch (Model.TypeInput)
+        {
+            case true:
+                <div class="container-fluid">
+                    @using (Html.BeginForm("_NewItemSingleLine", "Home", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        await Html.RenderPartialAsync("FormItem.cshtml", Model);
+
+                    }
+                </div>
+                break;
+            case false:
+                <div class="container-fluid">
+                    @using (Html.BeginForm("_NewItemSingleLine", "Home", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        await Html.RenderPartialAsync("FormItemSingleLine.cshtml", Model);
+                    }
+                </div>
+                break;
+        }
+    </div>
+</section>
+

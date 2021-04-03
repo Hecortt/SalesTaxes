@@ -1,0 +1,21 @@
+﻿@model SalesTaxes.Models.Item
+@{
+    ViewData["Title"] = "Single Line Item";
+}
+
+<h4>Add item in single line</h4>
+
+<div class="card">
+    <div class="card-header">
+        <h5> Structture Input : Qty / Imported (if exist) / NameItem / "at" / Price  </h5>
+    </div>
+    <div class="card-body">
+        @Html.TextBoxFor(m => m.CompletedName, new { @class = "form-control", @autcomplete = "off", @type = "text" })
+    </div>
+    <div class="card-footer">
+        <div class="pr-3">
+            <a href="@Url.Action("ListItems", "Home")" class="btn btn-dark">Return</a>
+            <button type="submit" class="btn btn-success" name="submit" id="new" value="new">Save Item</button>
+        </div>
+    </div>
+</div>
