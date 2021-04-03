@@ -84,9 +84,10 @@ namespace SalesTaxes.Controllers
 
                                        });
 
-                    foreach(var entry in itemsagrouped)
+                    foreach (var entry in itemsagrouped)
                     {
-                        Item item = new Item {
+                        Item item = new Item
+                        {
 
                             Name = entry.Name,
                             Qty = entry.Qty,
@@ -187,74 +188,82 @@ namespace SalesTaxes.Controllers
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> _NewItemSingleLine(Item item)
         {
-            if(item.CompletedName == null)
-            {
+            if (item.CompletedName == null)
                 item.CompletedName = item.Qty.ToString() + " " + (item.Imported ? "Imported " : "") + item.Name + " at " + item.Price.ToString();
-            }
 
-            string[] initialStructure = ValidateStructure(item.CompletedName);
-            int countArray = initialStructure.Length;
-            switch (countArray)
+            if (ValidateString(item.CompletedName))
             {
-                case 4:
-                    item.Id = Guid.NewGuid();
-                    item.Qty = int.Parse(initialStructure[0]);
-                    item.Name = initialStructure[1];
-                    item.TaxGeneral = ValidateExceptionsTax(item.Name) ? 0 : .10;
-                    item.Price = double.Parse(initialStructure[countArray - 1]);
-                    break;
-
-                case > 4:
-                    ///  Would exist an imported item
-                    ///  An import duty (import tax) applies to all imported items at a rate of 5% of the shelf price, with no exceptions.
-                    if (ValidateImported(initialStructure))
-                    {
-                        item.Id = Guid.NewGuid();
-                        item.Imported = true;
-                        item.TaxImported = .05;
-                        item.Qty = int.Parse(initialStructure[0]);
-
-                        for (int i = 2; i < countArray - 2; i++)
-                            item.Name += initialStructure[i] + " ";
-
-                        item.TaxGeneral = ValidateExceptionsTax(item.Name) ? 0 : .10;
-                        item.Price = double.Parse(initialStructure[countArray - 1]);
-
-                    }
-                    else
-                    {
-                        item.Id = Guid.NewGuid();
-                        item.Imported = false;
-                        item.Qty = int.Parse(initialStructure[0]);
-
-                        for (int i = 1; i < countArray - 2; i++)
-                            item.Name += initialStructure[i] + " ";
-
-                        item.TaxGeneral = ValidateExceptionsTax(item.Name) ? 0 : .10;
-                        item.Price = double.Parse(initialStructure[countArray - 1]);
-                    }
-                    break;
+                return View("Items/Error");
             }
-
-            string path = @"File\product.json";
-            List<Item> litems = new List<Item>();
-            try
+            else
             {
-                using (StreamReader jsonStream = System.IO.File.OpenText(path))
+                string[] initialStructure = ValidateStructure(item.CompletedName);
+                int countArray = initialStructure.Length;
+                switch (countArray)
                 {
-                    var jsonexist = jsonStream.ReadToEnd();
-                    litems = JsonConvert.DeserializeObject<List<Item>>(jsonexist);
+                    case < 4:
+                        return View("Items/Error");
+                        break;
+                    case 4:
+                        item.Id = Guid.NewGuid();
+                        item.Qty = int.Parse(initialStructure[0]);
+                        item.Name = initialStructure[1];
+                        item.TaxGeneral = ValidateExceptionsTax(item.Name) ? 0 : .10;
+                        item.Price = double.Parse(initialStructure[countArray - 1]);
+                        break;
+
+                    case > 4:
+                        ///  Would exist an imported item
+                        ///  An import duty (import tax) applies to all imported items at a rate of 5% of the shelf price, with no exceptions.
+                        if (ValidateImported(initialStructure))
+                        {
+                            item.Id = Guid.NewGuid();
+                            item.Imported = true;
+                            item.TaxImported = .05;
+                            item.Qty = int.Parse(initialStructure[0]);
+
+                            for (int i = 2; i < countArray - 2; i++)
+                                item.Name += initialStructure[i] + " ";
+
+                            item.TaxGeneral = ValidateExceptionsTax(item.Name) ? 0 : .10;
+                            item.Price = double.Parse(initialStructure[countArray - 1]);
+
+                        }
+                        else
+                        {
+                            item.Id = Guid.NewGuid();
+                            item.Imported = false;
+                            item.Qty = int.Parse(initialStructure[0]);
+
+                            for (int i = 1; i < countArray - 2; i++)
+                                item.Name += initialStructure[i] + " ";
+
+                            item.TaxGeneral = ValidateExceptionsTax(item.Name) ? 0 : .10;
+                            item.Price = double.Parse(initialStructure[countArray - 1]);
+                        }
+                        break;
                 }
+
+                string path = @"File\product.json";
+                List<Item> litems = new List<Item>();
+                try
+                {
+                    using (StreamReader jsonStream = System.IO.File.OpenText(path))
+                    {
+                        var jsonexist = jsonStream.ReadToEnd();
+                        litems = JsonConvert.DeserializeObject<List<Item>>(jsonexist);
+                    }
+                }
+                catch (Exception ex) { }
+
+                litems.Add(item);
+
+                string json = JsonConvert.SerializeObject(litems);
+                System.IO.File.WriteAllText(path, json);
+
+                return RedirectToAction("ListItems", "Home");
+                //return View("Items/ListItems", litems);
             }
-            catch (Exception ex) { }
-
-            litems.Add(item);
-
-            string json = JsonConvert.SerializeObject(litems);
-            System.IO.File.WriteAllText(path, json);
-
-            return RedirectToAction("ListItems", "Home");
-            //return View("Items/ListItems", litems);
         }
 
         #endregion
@@ -294,6 +303,56 @@ namespace SalesTaxes.Controllers
         {
             string[] stru = str.Split(' ');
             return stru;
+        }
+
+        public bool ValidateString(string str)
+        {
+            bool ex1 = false;
+            bool ex2 = false;
+            bool ex3 = false;
+            string[] stru = str.Split(' ');
+            int cstr = stru.Length;
+
+            try
+            {
+                if (char.IsNumber(char.Parse(stru[0])))
+                    ex1 = false;
+                else
+                    ex1 = true;
+            }
+            catch (Exception ex)
+            {
+                ex1 = true;
+            }
+
+            try
+            {
+                if (double.Parse(stru[cstr - 1].ToString()) > 0.1)
+                    ex2 = false;
+                else
+                    ex2 = true;
+            }
+            catch (Exception ex)
+            {
+                ex2 = true;
+            }
+
+            try
+            {
+                if (stru[cstr - 2].ToString().ToUpper() == "AT")
+                    ex3 = false;
+                else
+                    ex3 = true;
+            }
+            catch (Exception ex)
+            {
+                ex3 = true;
+            }
+
+            if (!ex1 && !ex2 && !ex3)
+                return false;
+            else return true;
+
         }
 
         #endregion
